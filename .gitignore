@@ -1,0 +1,14 @@
+# Ignore Go binaries and build cache
+/bin/
+/vendor/
+*.exe
+*.log
+*.out
+
+# Ignore environment files
+.env
+
+# IDE-specific
+.vscode/
+.idea/
+
