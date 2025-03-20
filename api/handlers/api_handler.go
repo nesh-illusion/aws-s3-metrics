@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"your_project/internal/models"
-	"your_project/internal/services"
+	"project_security_one/internal/models"
+	"project_security_one/internal/services"
 )
 
 // UserHandler handles HTTP requests for user operations

@@ -10,7 +10,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.2
 	github.com/gorilla/mux v1.8.1
 	gorm.io/gorm v1.25.12
-
 )
 
 require (

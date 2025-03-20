@@ -2,43 +2,61 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
 	"project_security_one/awsclient"
 	"project_security_one/config"
+	"project_security_one/internal/services"
 
-	awsConfig "github.com/aws/aws-sdk-go-v2/config" // Alias to avoid conflict
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 )
 
 func main() {
-	// Load configurations
 	config.LoadEnv()
 
-	// Load AWS Config
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
-		awsConfig.WithRegion(config.GetEnv("AWS_REGION", "ap-south-1")),
+		awsConfig.WithRegion(config.GetEnv("AWS_REGION", "default-region")),
 	)
 	if err != nil {
 		log.Fatal("Unable to load AWS SDK config, ", err)
 	}
 
-	// Initialize AWS Clients
+	// Init Clients
 	s3Client := awsclient.NewS3Client(awsCfg)
-	s3Client.ListBuckets()
-
 	costClient := awsclient.NewCostClient(awsCfg)
-	costClient.GetDailyS3Cost()
-
-	cwClient := awsclient.NewCWClient(awsCfg)
+	cwCfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion("ap-south-1"),
+	)
+	if err != nil {
+		log.Fatal("Unable to load AWS SDK config for CloudWatch, ", err)
+	}
+	cwClient := awsclient.NewCWClient(cwCfg)
+	// Fetch data
+	buckets := s3Client.ListBuckets()
+	cost := costClient.GetDailyS3Cost()
 	bucketName := config.GetEnv("S3_BUCKET_NAME", "default-bucket-name")
+	cwClient.ListAvailableMetrics(bucketName)
+	metrics := cwClient.GetBucketMetrics(bucketName)
 
-	cwClient.GetBucketMetrics(bucketName)
+	// Combine into final payload
+	payload := map[string]interface{}{
+		"Buckets": buckets,
+		"Cost":    cost,
+		"Metrics": metrics,
+	}
 
-	// Initialize API Router
-	//router := routes.SetupRouter()
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		log.Fatal("Error marshalling JSON: ", err)
+	}
+	log.Printf("Final Buckets: %+v", buckets)
+	log.Printf("Final Cost: %+v", cost)
+	log.Printf("Final Metrics: %+v", metrics)
 
-	// Start API Server
-	port := config.GetEnv("PORT", "8080")
-	log.Println("API Server running on port", port)
-	//log.Fatal(http.ListenAndServe(":"+port, router))
+	// Push using service
+	endpoint := config.GetEnv("PUSH_ENDPOINT", "default-endpoint")
+	services.PushData(endpoint, jsonData)
+
+	log.Println("✅ All data pushed successfully!")
 }

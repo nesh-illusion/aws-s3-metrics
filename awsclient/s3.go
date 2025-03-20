@@ -16,12 +16,14 @@ func NewS3Client(cfg aws.Config) *S3Client {
 	return &S3Client{Client: s3.NewFromConfig(cfg)}
 }
 
-func (s *S3Client) ListBuckets() {
+func (s *S3Client) ListBuckets() []string {
 	result, err := s.Client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
 	if err != nil {
 		log.Fatal(err)
 	}
+	buckets := []string{}
 	for _, bucket := range result.Buckets {
-		log.Printf("Bucket: %s", *bucket.Name)
+		buckets = append(buckets, *bucket.Name)
 	}
+	return buckets
 }

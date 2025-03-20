@@ -18,9 +18,10 @@ func NewCostClient(cfg aws.Config) *CostClient {
 	return &CostClient{Client: costexplorer.NewFromConfig(cfg)}
 }
 
-func (c *CostClient) GetDailyS3Cost() {
+func (c *CostClient) GetDailyS3Cost() map[string]string {
+	costData := make(map[string]string)
 	end := time.Now()
-	start := end.AddDate(0, 0, -7)
+	start := end.AddDate(0, 0, -1)
 
 	input := &costexplorer.GetCostAndUsageInput{
 		TimePeriod: &types.DateInterval{
@@ -43,6 +44,7 @@ func (c *CostClient) GetDailyS3Cost() {
 	}
 
 	for _, result := range resp.ResultsByTime {
-		log.Printf("Date: %s, Amount: %s %s", *result.TimePeriod.Start, *result.Total["UnblendedCost"].Amount, *result.Total["UnblendedCost"].Unit)
+		costData[*result.TimePeriod.Start] = *result.Total["UnblendedCost"].Amount
 	}
+	return costData
 }
